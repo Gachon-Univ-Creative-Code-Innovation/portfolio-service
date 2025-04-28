@@ -1,0 +1,7 @@
+requests
+httpx
+scikit-learn
+python-dotenv
+groq
+fastapi
+uvicorn
