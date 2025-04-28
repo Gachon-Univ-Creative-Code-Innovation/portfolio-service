@@ -37,33 +37,41 @@ async def FetchREADME(userID: int, gitURL: str):
         params = {"userID": userID, "gitURL": gitURL}
         async with httpx.AsyncClient() as client:
             # 주소값이 변환될 수도 있음
-            response = await client.get(f"http://localhost:8000/api/career/db/readme", params=params)
+            response = await client.get(
+                f"http://localhost:8000/api/career/db/readme", params=params
+            )
 
         if response.status_code == 200:
-            return response.json()["data"][0]["result"]["meta_data"], response.json()["data"][0]["img_url"]
+            return (
+                response.json()["data"][0]["result"]["meta_data"],
+                response.json()["data"][0]["img_url"],
+            )
         else:
             # 에러 메시지 로깅 등 가능
             return None
     except Exception as e:
         return None
-    
+
+
 # 두 글의 유사도 확인
-def check_similarity(text1, text2, threshold=0.7):
+def CheckSimilarity(text1, text2, threshold=0.7):
     vectorizer = TfidfVectorizer()
     tfidf = vectorizer.fit_transform([text1, text2])
-    
+
     cosineSim = cosine_similarity(tfidf[0], tfidf[1])
-    
+
     return cosineSim[0][0] >= threshold
+
 
 # 글 정규화 (html, markdown, 불필요한 공백 제거)
 def NormalizationText(text):
-    textHTML = re.sub(r'<.*?>', '', text)
-    textMarkdown = re.sub(r'(\*\*|\*|__|_|\#|\`|[!\[\]\(\)])', '', textHTML)
-    resultText = re.sub(r'\n\n+', '\n', textMarkdown)
-    
+    textHTML = re.sub(r"<.*?>", "", text)
+    textMarkdown = re.sub(r"(\*\*|\*|__|_|\#|\`|[!\[\]\(\)])", "", textHTML)
+    resultText = re.sub(r"\n\n+", "\n", textMarkdown)
+
     return resultText
-    
+
+
 # README 내용과 이미지를 가져오는 함수
 async def GetREADMEandImage(userID, gitURL):
     # DB README 내용 가져오기
@@ -73,20 +81,20 @@ async def GetREADMEandImage(userID, gitURL):
     except Exception as e:
         DBContent = None
         imgURL = None
-    
+
     # 웹에서 README 내용 가져오기
     WebContent = GetREADME(gitURL)
     WebContent = NormalizationText(WebContent)
-    
+
     # 없는 값일 경우
     if DBContent is None:
         return WebContent, imgURL
-    
+
     if WebContent is None:
         return DBContent, imgURL
-    
+
     # 유사도 확인
-    if check_similarity(DBContent, WebContent):
+    if CheckSimilarity(DBContent, WebContent):
         return DBContent, imgURL
     else:
-        return WebContent +"\n"+ DBContent, imgURL
+        return WebContent + "\n" + DBContent, imgURL
