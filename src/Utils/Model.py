@@ -42,10 +42,10 @@ def CallLLM(modelName, content, client):
                         "{ 'content': 'return' }\n"
                     ),
                 },
-                {"role": "user", "content": content}, 
+                {"role": "user", "content": content},
             ],
             model=modelName,
-            temperature=0.5,
+            temperature=0.2,
         )
 
         content = chatCompletion.choices[0].message.content
@@ -66,5 +66,5 @@ def RunModel(content):
 
     client = Groq(api_key=GROQ_API_KEY)
     response = CallLLM("gemma2-9b-it", content, client)
-    
+
     return response
