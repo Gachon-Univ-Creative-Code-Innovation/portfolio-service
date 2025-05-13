@@ -16,7 +16,7 @@ app = FastAPI(title="Portfolio AI API")
 
 
 # 포트폴리오 글과 이미지 생성 API
-@app.post("/api/portfolio/make")
+@app.get("/api/portfolio/make")
 async def MakeProtfolio(gitURL: str):
     try:
         """이 부분은 token 연동 후"""
