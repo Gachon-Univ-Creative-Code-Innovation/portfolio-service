@@ -65,27 +65,36 @@ def ReadLikeCount(portfolioID: int):
 
 
 # url로 storage에서 값 가져오기
-def ReadStorageURL(portfolio_url, userID):
+def ReadStorageURL(portfolio_id, userID):
     supabase: Client = DBClientCall()
 
-    url = ReadMetaData(portfolio_url, userID)
+    # 1. portfolio_id로 row 조회
+    response = (
+        supabase.table("Portfolio")
+        .select("portfolio_content, user_id, is_public")
+        .eq("portfolio_id", portfolio_id)
+        .execute()
+    )
 
-    path = urlparse(
-        url
-    ).path  # e.g. /storage/v1/object/public/portfolio-bucket/portfolio_312_title.txt
+    if not response.data:
+        return None
+
+    record = response.data[0]
+    portfolio_content_url = record["portfolio_content"]
+    # 권한 체크 (본인 또는 공개)
+    if not (record["user_id"] == int(userID) or record["is_public"] is True):
+        return None
+
+    # 2. Storage에서 값 가져오기
+    path = urlparse(portfolio_content_url).path
     key = path.split("/public/portfolio-bucket/")[-1]
-
-    # Storage에서 값 가져오기
     response = supabase.storage.from_(BucketCall()).download(key)
 
-    # 오류 처리
     if hasattr(response, "error") and response.error:
-        print("Storage Read Error")
         return None
 
     try:
         content = response.decode("utf-8")
         return content
     except Exception as e:
-        print(f"Unexpected error: {e}")
         return None
