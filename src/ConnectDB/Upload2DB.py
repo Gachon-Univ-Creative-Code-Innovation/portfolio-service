@@ -2,7 +2,7 @@ from src.Utils.DBClient import DBClientCall, BucketCall
 from datetime import datetime
 import tempfile
 from unidecode import unidecode
-import re
+import uuid
 
 
 # portfolio_id 가져오기
@@ -24,7 +24,7 @@ def GetNextPortfolioID():
 
 
 # DB에 해당 내용 저장
-def SaveDBData(userID, title, content, isPublic, image, isTemp):
+def SaveDBData(userID, title, content, isPublic, isTemp, image=None):
     supabase = DBClientCall()
 
     portfolioContent = SaveStorage(content, title, userID)
@@ -50,8 +50,8 @@ def SaveStorage(content, title, userID):
     bucketName = BucketCall()
 
     title = unidecode(title)
-    re.sub(r"[^a-zA-Z0-9_\-\.]", "_", title)
-    fileName = f"portfolio_{userID}_{title}.txt"
+    folder = f"portfolio_{userID}_{title}"
+    fileName = f"{folder}/portfolio_{userID}_{title}.txt"
 
     # Storage에 저장
     with tempfile.NamedTemporaryFile(
@@ -76,15 +76,15 @@ def SaveStorage(content, title, userID):
 
 
 # 통합적 저장 코드
-def SavePortfolioData(title, content, userID, isPublic, image):
+def SavePortfolioData(title, content, userID, isPublic, image=None):
     try:
-        SaveDBData(userID, title, content, isPublic, image)
+        SaveDBData(userID, title, content, isPublic, isTemp=False, image=image)
     except Exception as e:
         print(f"Error saving portfolio data: {e}")
 
 
 # DB 내용 수정
-def UpdateDBData(portfolioID, userID, title, content, isPublic, image, isTemp):
+def UpdateDBData(portfolioID, userID, title, content, isPublic, isTemp, image=None):
     supabase = DBClientCall()
 
     portfolioContent = UpdateStorage(content, title, userID)
@@ -98,7 +98,13 @@ def UpdateDBData(portfolioID, userID, title, content, isPublic, image, isTemp):
         "updated_at": datetime.utcnow().isoformat(),
     }
 
-    supabase.table("Portfolio").update(data).eq("portfolio_id", portfolioID).execute()
+    response = (
+        supabase.table("Portfolio")
+        .update(data)
+        .eq("portfolio_id", portfolioID)
+        .execute()
+    )
+    return response
 
 
 # Storage 내용 수정 (기존 파일 덮어쓰기)
@@ -107,8 +113,14 @@ def UpdateStorage(content, title, userID):
     bucketName = BucketCall()
 
     title = unidecode(title)
-    re.sub(r"[^a-zA-Z0-9_\-\.]", "_", title)
-    fileName = f"portfolio_{userID}_{title}.txt"
+    folder = f"portfolio_{userID}_{title}"
+    fileName = f"{folder}/portfolio_{userID}_{title}.txt"
+
+    # 기존 파일 삭제 시도 (있으면 삭제, 없으면 무시)
+    try:
+        supabase.storage.from_(bucketName).remove([fileName])
+    except Exception as e:
+        pass
 
     with tempfile.NamedTemporaryFile(
         delete=False, suffix=".txt", mode="w", encoding="utf-8"
@@ -119,22 +131,24 @@ def UpdateStorage(content, title, userID):
     response = supabase.storage.from_(bucketName).upload(
         path=fileName,
         file=tempPath,
-        file_options={"contentType": "text/plain", "upsert": "True"},
+        file_options={"contentType": "text/plain"},
     )
 
     if hasattr(response, "error") and response.error:
-        print("Storage Update Error")
         return None
 
     return supabase.storage.from_(bucketName).get_public_url(fileName)
 
 
 # 통합 업데이트 함수
-def UpdatePortfolioData(portfolioID, title, content, userID, isPublic, image):
+def UpdatePortfolioData(portfolioID, title, content, userID, isPublic, image=None):
     try:
-        UpdateDBData(portfolioID, userID, title, content, isPublic, image, isTemp=False)
+        response = UpdateDBData(
+            portfolioID, userID, title, content, isPublic, isTemp=False, image=image
+        )
+        return response
     except Exception as e:
-        print(f"Error updating portfolio data: {e}")
+        return None
 
 
 # 포트폴리오의 좋아요 하기
@@ -170,3 +184,25 @@ def UnlikePortfolio(portfolioID: int, userID: int):
 
     except Exception as e:
         return {"message": f"서버 오류: {str(e)}", "status": "error"}
+
+
+# 이미지 업로드 함수
+def UploadImageToStorage(filePath, title, userID):
+    supabase = DBClientCall()
+    bucketName = BucketCall()
+
+    title = unidecode(title)
+    folder = f"portfolio_{userID}_{title}"
+    ext = filePath.split(".")[-1]
+    unique_id = uuid.uuid4().hex
+    fileName = f"{folder}/image_{unique_id}.{ext}"
+
+    response = supabase.storage.from_(bucketName).upload(
+        path=fileName,
+        file=filePath,
+        file_options={"contentType": f"image/{ext}", "upsert": "True"},
+    )
+    if hasattr(response, "error") and response.error:
+        print("Image Upload Error")
+        return None
+    return supabase.storage.from_(bucketName).get_public_url(fileName)

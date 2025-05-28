@@ -1,8 +1,8 @@
 import re
 import os
 import requests
-import json
 from dotenv import load_dotenv
+
 
 # <think>와 </think> 사이의 내용을 포함하여 모두 제거
 def RemoveThink(text):
@@ -11,6 +11,7 @@ def RemoveThink(text):
     except Exception as e:
         print("None Json")
         return text
+
 
 # 응답에서 내용 JSON 목록을 추출하는 함수
 def ExtractJson(text):
@@ -41,7 +42,7 @@ def CallLLM(modelName, content, vllm_url):
                     ),
                 },
                 {"role": "user", "content": content},
-            ]
+            ],
         }
 
         response = requests.post(f"{vllm_url}", json=payload, headers=headers)
@@ -56,12 +57,13 @@ def CallLLM(modelName, content, vllm_url):
         print(f"Exception in {modelName}: {e}")
         return None
 
+
 # 실행 함수
 def RunModel(content):
     envPath = os.path.join(os.path.dirname(__file__), "../..", ".env")
     load_dotenv(dotenv_path=os.path.abspath(envPath))
 
-    VLLM_SERVER_URL = os.getenv("VLLM_SERVER_URL")  # 예: http://localhost:8000
+    VLLM_SERVER_URL = os.getenv("VLLM_SERVER_URL")
     modelName = "google/gemma-3-4b-it"
 
     return CallLLM(modelName, content, VLLM_SERVER_URL)

@@ -2,8 +2,8 @@ requests
 httpx
 scikit-learn
 python-dotenv
-groq
 fastapi
 uvicorn
 supabase
 unidecode
+python-multipart

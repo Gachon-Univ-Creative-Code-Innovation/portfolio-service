@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+import os
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 
 from src.Extractor.READMEFetcher import GetREADMEandImage
@@ -9,6 +10,7 @@ from src.ConnectDB.Upload2DB import (
     UpdatePortfolioData,
     LikePortfolio,
     UnlikePortfolio,
+    UploadImageToStorage,
 )
 
 
@@ -42,7 +44,7 @@ async def MakeProtfolio(gitURL: str):
 # 쓴 글을 저장하는 API
 @app.post("/api/portfolio/save")
 async def SavePortfolio(
-    title: str, content: str, is_public: bool, image: str, isTemp: bool
+    title: str, content: str, is_public: bool, isTemp: bool, image: str = None
 ):
     try:
         """이 부분은 token 연동 후"""
@@ -51,7 +53,7 @@ async def SavePortfolio(
         userID = 312
 
         # DB에 저장하는 코드
-        SavePortfolioData(title, content, userID, is_public, image, isTemp)
+        SavePortfolioData(title, content, userID, is_public, image)
 
         return {
             "status": 200,
@@ -68,7 +70,7 @@ async def SavePortfolio(
 
 # 포트폴리오 리스트를 가져오는 API
 @app.get("/api/portfolio/list")
-async def GetPortfolioList(is_public: bool, isDesc: bool = True):
+async def GetMyPortfolioList(is_public: bool, isDesc: bool = True):
     try:
         """이 부분은 token 연동 후"""
         # accessToken = GetTokenFromHeader(request)
@@ -97,26 +99,29 @@ async def GetPortfolioList(is_public: bool, isDesc: bool = True):
 @app.get("/api/portfolio/detail")
 async def GetPortfolioDetail(portfolioID):
     try:
-        """이 부분은 token 연동 후"""
-        # accessToken = GetTokenFromHeader(request)
-        # userID = GetDataFromToken(accessToken, "user_id")
         userID = 312
-        portfolio = ReadStorageURL(portfolioID, userID)
+        content = ReadStorageURL(portfolioID, userID)
         like = ReadLikeCount(portfolioID)
-        portfolio[-1]["like_count"] = like
-
+        if content is None:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": 400,
+                    "message": "포트폴리오 접근 권한이 없습니다.",
+                    "data": None,
+                },
+            )
         return {
             "status": 200,
             "message": "포트폴리오 상세 페이지 가져오기 성공",
-            "data": portfolio,
+            "data": {"content": content, "like_count": like},
         }
-
-    except Exception:
+    except Exception as e:
         return JSONResponse(
             status_code=400,
             content={
                 "status": 400,
-                "message": "포트폴리오 접근 권한이 없습니다.",
+                "message": f"포트폴리오 상세 페이지 가져오기 실패: {e}",
                 "data": None,
             },
         )
@@ -125,7 +130,7 @@ async def GetPortfolioDetail(portfolioID):
 # 포트폴리오 수정하는 API
 @app.put("/api/portfolio/update")
 async def UpdatePortfolio(
-    portfolioID: int, title: str, content: str, isPublic: bool, image: str
+    portfolioID: int, title: str, content: str, isPublic: bool, image: str = None
 ):
     try:
         """이 부분은 token 연동 후"""
@@ -210,6 +215,49 @@ async def Unlike(portfolioID: int):
             content={
                 "status": 400,
                 "message": "포트폴리오 좋아요 취소 실패",
+                "data": None,
+            },
+        )
+
+
+# 이미지 업로드 API
+@app.post("/api/portfolio/upload-image")
+async def UploadPortfolioImage(
+    title: str = Form(...),
+    image: UploadFile = File(...),
+):
+    try:
+        """이 부분은 token 연동 후"""
+        # accessToken = GetTokenFromHeader(request)
+        # userID = GetDataFromToken(accessToken, "user_id")
+        userID = 312
+
+        # 임시 파일로 저장
+        tempPath = f"temp_{userID}_{image.filename}"
+        with open(tempPath, "wb") as buffer:
+            buffer.write(await image.read())
+
+        # Storage에 업로드
+        imageURL = UploadImageToStorage(tempPath, title, userID)
+        os.remove(tempPath)
+
+        if not imageURL:
+            return JSONResponse(
+                status_code=400,
+                content={"status": 400, "message": "이미지 업로드 실패", "data": None},
+            )
+
+        return {
+            "status": 200,
+            "message": "이미지 업로드 성공",
+            "data": {"image_url": imageURL},
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "status": 400,
+                "message": f"이미지 업로드 실패: {e}",
                 "data": None,
             },
         )
