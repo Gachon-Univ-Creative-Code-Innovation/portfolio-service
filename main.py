@@ -58,7 +58,7 @@ async def SavePortfolio(
         userID = 312
 
         # DB에 저장하는 코드
-        SavePortfolioData(title, content, userID, is_public, image)
+        SavePortfolioData(title, content, userID, is_public, image, isTemp)
 
         return {
             "status": 200,
@@ -162,7 +162,12 @@ async def GetPortfolioDetail(portfolioID):
 # 포트폴리오 수정하는 API
 @app.put("/api/portfolio/update")
 async def UpdatePortfolio(
-    portfolioID: int, title: str, content: str, isPublic: bool, image: str = None
+    portfolioID: int,
+    title: str,
+    content: str,
+    isPublic: bool,
+    isTemp: bool,
+    image: str = None,
 ):
     try:
         """이 부분은 token 연동 후"""
@@ -171,7 +176,9 @@ async def UpdatePortfolio(
         userID = 312
 
         # DB에 저장하는 코드
-        UpdatePortfolioData(portfolioID, title, content, userID, isPublic, image)
+        UpdatePortfolioData(
+            portfolioID, title, content, userID, isPublic, image, isTemp
+        )
 
         return {
             "status": 200,
