@@ -66,12 +66,10 @@ def SaveStorage(content, title, userID):
         file_options={"contentType": "text/plain", "upsert": "True"},
     )
 
-    # 오류 처리
     if hasattr(response, "error") and response.error:
         print("Storage Save Error")
         return None
 
-    # Bucket 접근 URL return
     return supabase.storage.from_(bucketName).get_public_url(fileName)
 
 

@@ -4,7 +4,12 @@ from fastapi.responses import JSONResponse
 
 from src.Extractor.READMEFetcher import GetREADMEandImage
 from src.Utils.Model import RunModel
-from src.ConnectDB.ReadDB import ReadDBList, ReadStorageURL, ReadLikeCount
+from src.ConnectDB.ReadDB import (
+    ReadAllPortfolioList,
+    ReadDBList,
+    ReadStorageURL,
+    ReadLikeCount,
+)
 from src.ConnectDB.Upload2DB import (
     SavePortfolioData,
     UpdatePortfolioData,
@@ -68,15 +73,15 @@ async def SavePortfolio(
         )
 
 
-# 포트폴리오 리스트를 가져오는 API
+# 자신의 포트폴리오 리스트를 가져오는 API
 @app.get("/api/portfolio/list")
-async def GetMyPortfolioList(is_public: bool, isDesc: bool = True):
+async def GetMyPortfolioList(isDesc: bool = True):
     try:
         """이 부분은 token 연동 후"""
         # accessToken = GetTokenFromHeader(request)
         # userID = GetDataFromToken(accessToken, "user_id")
         userID = 312
-        portfolioList = ReadDBList(userID, is_public, isDesc)
+        portfolioList = ReadDBList(userID, isDesc)
 
         return {
             "status": 200,
@@ -90,6 +95,33 @@ async def GetMyPortfolioList(is_public: bool, isDesc: bool = True):
             content={
                 "status": 400,
                 "message": "포트폴리오 리스트 가져오기 실패",
+                "data": None,
+            },
+        )
+
+
+# 모든 포트폴리오 리스트를 가져오는 API
+@app.get("/api/portfolio/all")
+async def GetAllPortfolioList(isDesc: bool = True):
+    try:
+        """이 부분은 token 연동 후"""
+        # accessToken = GetTokenFromHeader(request)
+        # userID = GetDataFromToken(accessToken, "user_id")
+        userID = 312
+        portfolioList = ReadAllPortfolioList(userID, isDesc)
+
+        return {
+            "status": 200,
+            "message": "모든 포트폴리오 리스트 가져오기 성공",
+            "data": portfolioList,
+        }
+
+    except Exception:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "status": 400,
+                "message": "모든 포트폴리오 리스트 가져오기 실패",
                 "data": None,
             },
         )
