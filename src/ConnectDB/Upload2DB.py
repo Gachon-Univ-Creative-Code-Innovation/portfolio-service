@@ -74,9 +74,9 @@ def SaveStorage(content, title, userID):
 
 
 # 통합적 저장 코드
-def SavePortfolioData(title, content, userID, isPublic, image=None):
+def SavePortfolioData(title, content, userID, isPublic, image=None, isTemp=False):
     try:
-        SaveDBData(userID, title, content, isPublic, isTemp=False, image=image)
+        SaveDBData(userID, title, content, isPublic, isTemp, image)
     except Exception as e:
         print(f"Error saving portfolio data: {e}")
 
@@ -139,10 +139,12 @@ def UpdateStorage(content, title, userID):
 
 
 # 통합 업데이트 함수
-def UpdatePortfolioData(portfolioID, title, content, userID, isPublic, image=None):
+def UpdatePortfolioData(
+    portfolioID, title, content, userID, isPublic, image=None, isTemp=False
+):
     try:
         response = UpdateDBData(
-            portfolioID, userID, title, content, isPublic, isTemp=False, image=image
+            portfolioID, userID, title, content, isPublic, isTemp, image
         )
         return response
     except Exception as e:
