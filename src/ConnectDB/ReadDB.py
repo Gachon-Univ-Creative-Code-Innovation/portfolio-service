@@ -5,15 +5,14 @@ from urllib.parse import urlparse
 
 
 # 유저 ID로 대표 이미지와 storage url 가져오기
-def ReadDBList(userID, isPublic, isDesc):
+def ReadDBList(userID, isDesc):
     supabase: Client = DBClientCall()
 
     # SQL 실행
     response = (
-        supabase.table("Portfolio")
-        .select("title, image, portfolio_content, is_public")
+        supabase.table("portfolio_with_like")
+        .select("*")
         .eq("user_id", userID)
-        .eq("is_public", isPublic)
         .order("created_at", desc=isDesc)
         .execute()
     )
@@ -21,31 +20,21 @@ def ReadDBList(userID, isPublic, isDesc):
     return response.data
 
 
-# DB에서 메타데이터 가져오기
-def ReadMetaData(url: str, userID: int):
+# 전체 포트폴리오 리스트를 가져오기
+def ReadAllPortfolioList(userID, isDesc):
     supabase: Client = DBClientCall()
 
-    # 직접 쿼리
+    # SQL 실행
     response = (
-        supabase.table("Portfolio")
-        .select("user_id, is_public, portfolio_content")
-        .eq("portfolio_content", url)
+        supabase.table("portfolio_with_like")
+        .select("*")
+        .eq("is_public", True)
+        .neq("user_id", userID)
+        .order("created_at", desc=isDesc)
         .execute()
     )
 
-    # 값 없을 때
-    if not response.data:
-        return None
-
-    record = response.data[0]
-
-    # 권한 확인
-    if record["user_id"] == int(userID):
-        return json.dumps(record["portfolio_content"], indent=2)
-    elif record["is_public"] is True:
-        return json.dumps(record["portfolio_content"], indent=2)
-    else:
-        return None
+    return response.data
 
 
 # 포트폴리오의 좋아요 수 가져오기
@@ -64,11 +53,10 @@ def ReadLikeCount(portfolioID: int):
     return count
 
 
-# url로 storage에서 값 가져오기
+# ID로 storage에서 값 가져오기
 def ReadStorageURL(portfolio_id, userID):
     supabase: Client = DBClientCall()
 
-    # 1. portfolio_id로 row 조회
     response = (
         supabase.table("Portfolio")
         .select("portfolio_content, user_id, is_public")
@@ -80,13 +68,12 @@ def ReadStorageURL(portfolio_id, userID):
         return None
 
     record = response.data[0]
-    portfolio_content_url = record["portfolio_content"]
+    contentURL = record["portfolio_content"]
     # 권한 체크 (본인 또는 공개)
     if not (record["user_id"] == int(userID) or record["is_public"] is True):
         return None
 
-    # 2. Storage에서 값 가져오기
-    path = urlparse(portfolio_content_url).path
+    path = urlparse(contentURL).path
     key = path.split("/public/portfolio-bucket/")[-1]
     response = supabase.storage.from_(BucketCall()).download(key)
 
