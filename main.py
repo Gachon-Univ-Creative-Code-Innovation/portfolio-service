@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.Extractor.READMEFetcher import GetREADMEandImage
 from src.Utils.Model import RunModel
@@ -21,6 +22,14 @@ from src.ConnectDB.Upload2DB import (
 
 
 app = FastAPI(title="Portfolio AI API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # 포트폴리오 글과 이미지 생성 API
