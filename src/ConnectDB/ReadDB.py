@@ -1,4 +1,3 @@
-import json
 from src.Utils.DBClient import DBClientCall, BucketCall
 from supabase import Client
 from urllib.parse import urlparse
