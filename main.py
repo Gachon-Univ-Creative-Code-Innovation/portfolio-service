@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 
 from src.Extractor.READMEFetcher import GetREADMEandImage
 from src.Utils.Model import RunModel
+from src.Utils.GetJWT import GetDataFromToken, GetTokenFromHeader
 from src.ConnectDB.ReadDB import (
     ReadAllPortfolioList,
     ReadDBList,
