@@ -21,6 +21,8 @@ def ExtractJson(text):
 # LLM 호출 함수 (vLLM 서버용)
 def CallLLM(modelName, content, vllm_url):
     try:
+        if not vllm_url:
+            raise ValueError("VLLM_SERVER_URL 환경변수가 설정되지 않았습니다.")
         headers = {
             "Content-Type": "application/json",
         }
@@ -49,12 +51,10 @@ def CallLLM(modelName, content, vllm_url):
         response.raise_for_status()
 
         content = response.json()["choices"][0]["message"]["content"]
-        print(f"\n[{modelName}] Raw Output:\n{content}\n{'-'*50}")
 
         return ExtractJson(RemoveThink(content))
 
     except Exception as e:
-        print(f"Exception in {modelName}: {e}")
         return None
 
 

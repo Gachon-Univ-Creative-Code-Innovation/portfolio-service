@@ -5,6 +5,7 @@ import httpx
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
+import traceback
 
 
 # GitHub API를 사용하여 README.md 파일을 가져오는 함수
@@ -36,20 +37,19 @@ async def FetchREADME(userID: int, gitURL: str):
     try:
         params = {"userID": userID, "gitURL": gitURL}
         async with httpx.AsyncClient() as client:
-            # 주소값이 변환될 수도 있음
             response = await client.get(
-                f"http://localhost:8000/api/career/db/readme", params=params
+                "http://gitapi:8000/api/career/db/readme", params=params
             )
-
         if response.status_code == 200:
             return (
-                response.json()["data"][0]["result"]["meta_data"],
-                response.json()["data"][0]["img_url"],
+                response.json()["data"]["meta_data"],
+                response.json()["data"]["img_url"],
             )
         else:
-            # 에러 메시지 로깅 등 가능
+            print("DB에서 README 정보 가져오기 실패:", response.text)
             return None
     except Exception as e:
+        traceback.print_exc()
         return None
 
 
