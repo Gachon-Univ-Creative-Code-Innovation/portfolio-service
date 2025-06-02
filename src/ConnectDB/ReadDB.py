@@ -52,6 +52,48 @@ def ReadLikeCount(portfolioID: int):
     return count
 
 
+# 특정 UserID의 첫번째 공개 포트폴리오 ID를 가져오기
+def ReadFirstPortfolioID(userID: int):
+    supabase: Client = DBClientCall()
+
+    response = (
+        supabase.table("Portfolio")
+        .select("portfolio_id")
+        .eq("user_id", userID)
+        .eq("is_public", True)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if not response.data:
+        return None
+
+    return response.data[0]["portfolio_id"]
+
+
+# 포트폴리오 ID로 title, author, date 가져오기
+def ReadPortfolio(portfolioID: int):
+    supabase: Client = DBClientCall()
+
+    response = (
+        supabase.table("Portfolio")
+        .select("title, user_id, created_at")
+        .eq("portfolio_id", portfolioID)
+        .execute()
+    )
+
+    if not response.data:
+        return None
+
+    record = response.data[0]
+    title = record["title"]
+    author = record["user_id"]
+    date = record["created_at"]
+
+    return title, author, date
+
+
 # ID로 storage에서 값 가져오기
 def ReadStorageURL(portfolio_id, userID):
     supabase: Client = DBClientCall()

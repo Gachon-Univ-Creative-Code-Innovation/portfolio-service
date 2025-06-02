@@ -81,6 +81,35 @@ def SavePortfolioData(title, content, userID, isPublic, image=None, isTemp=False
         print(f"Error saving portfolio data: {e}")
 
 
+# 포트폴리오 삭제 코드
+def DeletePortfolio(portfolioID, userID):
+    supabase = DBClientCall()
+
+    # 포트폴리오 삭제
+    response = (
+        supabase.table("Portfolio")
+        .delete()
+        .eq("portfolio_id", portfolioID)
+        .eq("user_id", userID)
+        .execute()
+    )
+
+    if hasattr(response, "error") and response.error:
+        return False
+
+    # Storage에서 파일 삭제
+    bucketName = BucketCall()
+    folder = f"portfolio_{userID}_"
+    fileName = f"{folder}portfolio_{userID}_*.txt"
+
+    try:
+        supabase.storage.from_(bucketName).remove([fileName])
+    except Exception as e:
+        print(f"Error deleting storage file: {e}")
+
+    return True
+
+
 # DB 내용 수정
 def UpdateDBData(portfolioID, userID, title, content, isPublic, isTemp, image=None):
     supabase = DBClientCall()
