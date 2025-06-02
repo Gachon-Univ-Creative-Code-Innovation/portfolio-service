@@ -11,6 +11,8 @@ from src.ConnectDB.ReadDB import (
     ReadDBList,
     ReadStorageURL,
     ReadLikeCount,
+    ReadFirstPortfolioID,
+    ReadPortfolio,
 )
 from src.ConnectDB.Upload2DB import (
     SavePortfolioData,
@@ -18,6 +20,7 @@ from src.ConnectDB.Upload2DB import (
     LikePortfolio,
     UnlikePortfolio,
     UploadImageToStorage,
+    DeletePortfolio,
 )
 
 
@@ -137,6 +140,29 @@ async def GetAllPortfolioList(isDesc: bool = True):
         )
 
 
+# 특정 UserID의 포트폴리오 ID를 가져오는 API
+@app.get("/api/portfolio/user")
+async def GetUserPortfolioList(userID: int):
+    try:
+        portfolioID = ReadFirstPortfolioID(userID)
+
+        return {
+            "status": 200,
+            "message": "유저 포트폴리오 리스트 가져오기 성공",
+            "data": portfolioID,
+        }
+
+    except Exception:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "status": 400,
+                "message": "유저 포트폴리오 리스트 가져오기 실패",
+                "data": None,
+            },
+        )
+
+
 # 포트폴리오 상세 페이지를 가져오는 API
 @app.get("/api/portfolio/detail")
 async def GetPortfolioDetail(portfolioID):
@@ -144,6 +170,8 @@ async def GetPortfolioDetail(portfolioID):
         userID = 312
         content = ReadStorageURL(portfolioID, userID)
         like = ReadLikeCount(portfolioID)
+        # title, author, date
+        ex = ReadPortfolio(portfolioID)
         if content is None:
             return JSONResponse(
                 status_code=400,
@@ -153,10 +181,23 @@ async def GetPortfolioDetail(portfolioID):
                     "data": None,
                 },
             )
+        # ex: (title, author, date)
+        title = ex[0] if ex else None
+        author = ex[1] if ex else None
+        date = ex[2].split("T")[0].replace("-", ".") if ex and ex[2] else None
+        if date:
+            y, m, d = date.split(".")
+            date = f"{y}.{m.zfill(2)}.{d.zfill(2)}"
         return {
             "status": 200,
             "message": "포트폴리오 상세 페이지 가져오기 성공",
-            "data": {"content": content, "like_count": like},
+            "data": {
+                "content": content,
+                "like_count": like,
+                "title": title,
+                "author": author,
+                "date": date,
+            },
         }
     except Exception as e:
         return JSONResponse(
@@ -170,6 +211,7 @@ async def GetPortfolioDetail(portfolioID):
 
 
 # 포트폴리오 수정하는 API
+# 미연결
 @app.put("/api/portfolio/update")
 async def UpdatePortfolio(
     portfolioID: int,
@@ -203,67 +245,82 @@ async def UpdatePortfolio(
         )
 
 
-# 포트폴리오의 좋아요 누르는 API
+# 포트폴리오 좋아요 API
 @app.post("/api/portfolio/like")
-async def Like(portfolioID: int):
+async def ToggleLike(portfolioID: int):
     try:
         """이 부분은 token 연동 후"""
         # accessToken = GetTokenFromHeader(request)
         # userID = GetDataFromToken(accessToken, "user_id")
         userID = 312
 
-        # 포트폴리오에 좋아요 추가하기
-        LikePortfolio(portfolioID, userID)
-
-        return {
-            "status": 200,
-            "message": "포트폴리오 좋아요 성공",
-            "data": None,
-        }
-
-    except Exception:
+        try:
+            # 먼저 좋아요 추가 시도
+            LikePortfolio(portfolioID, userID)
+            return {
+                "status": 200,
+                "message": "포트폴리오 좋아요 성공",
+                "data": {"liked": True},
+            }
+        except Exception:
+            # 이미 좋아요가 있으면 취소 시도
+            if not UnlikePortfolio(portfolioID, userID):
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "status": 400,
+                        "message": "포트폴리오 좋아요 취소 실패",
+                        "data": None,
+                    },
+                )
+            return {
+                "status": 200,
+                "message": "포트폴리오 좋아요 취소 성공",
+                "data": {"liked": False},
+            }
+    except Exception as e:
         return JSONResponse(
             status_code=400,
             content={
                 "status": 400,
-                "message": "포트폴리오 좋아요 실패",
+                "message": f"포트폴리오 좋아요 토글 실패: {e}",
                 "data": None,
             },
         )
 
 
-# 포트폴리오의 좋아요 취소하는 API
-@app.delete("/api/portfolio/unlike")
-async def Unlike(portfolioID: int):
+# 포트폴리오 삭제 API
+# 미연결
+@app.delete("/api/portfolio/delete")
+async def DeletePortfolioAPI(portfolioID: int):
     try:
         """이 부분은 token 연동 후"""
         # accessToken = GetTokenFromHeader(request)
         # userID = GetDataFromToken(accessToken, "user_id")
         userID = 312
 
-        # 포트폴리오에 좋아요 취소하기
-        if not UnlikePortfolio(portfolioID, userID):
+        # DB에서 삭제
+        if not DeletePortfolio(portfolioID, userID):
             return JSONResponse(
                 status_code=400,
                 content={
                     "status": 400,
-                    "message": "포트폴리오 좋아요 취소 실패",
+                    "message": "포트폴리오 삭제 실패",
                     "data": None,
                 },
             )
 
         return {
             "status": 200,
-            "message": "포트폴리오 좋아요 취소 성공",
+            "message": "포트폴리오 삭제 성공",
             "data": None,
         }
-
-    except Exception:
+    except Exception as e:
         return JSONResponse(
             status_code=400,
             content={
                 "status": 400,
-                "message": "포트폴리오 좋아요 취소 실패",
+                "message": f"포트폴리오 삭제 실패: {e}",
                 "data": None,
             },
         )
