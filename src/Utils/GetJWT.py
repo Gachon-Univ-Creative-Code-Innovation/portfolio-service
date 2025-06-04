@@ -27,8 +27,6 @@ def GetDataFromToken(token, getWhat):
 # 요청 Header에서 Access Token 추출 코드
 def GetTokenFromHeader(request: Request):
     header = request.headers.get("Authorization")
-    print("[DEBUG] 전체 요청 헤더:", dict(request.headers))
-    print(f"[DEBUG] Authorization 헤더 값: {header}")
 
     if not header:
         raise ValueError("Authorization 헤더가 없습니다.")

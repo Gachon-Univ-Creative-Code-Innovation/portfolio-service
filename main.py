@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,12 +37,12 @@ app.add_middleware(
 
 # 포트폴리오 글과 이미지 생성 API
 @app.get("/api/portfolio/make")
-async def MakeProtfolio(gitURL: str):
+async def MakeProtfolio(gitURL: str, request: Request):
     try:
         """이 부분은 token 연동 후"""
-        # accessToken = GetTokenFromHeader(request)
-        # userID = GetDataFromToken(accessToken, "user_id")
-        userID = 312
+        accessToken = GetTokenFromHeader(request)
+        userID = GetDataFromToken(accessToken, "user_id")
+
         content, image = await GetREADMEandImage(userID, gitURL)
         text = RunModel(content)
 
@@ -62,13 +62,17 @@ async def MakeProtfolio(gitURL: str):
 # 쓴 글을 저장하는 API
 @app.post("/api/portfolio/save")
 async def SavePortfolio(
-    title: str, content: str, is_public: bool, isTemp: bool, image: str = None
+    request: Request,
+    title: str,
+    content: str,
+    is_public: bool,
+    isTemp: bool,
+    image: str = None,
 ):
     try:
         """이 부분은 token 연동 후"""
-        # accessToken = GetTokenFromHeader(request)
-        # userID = GetDataFromToken(accessToken, "user_id")
-        userID = 312
+        accessToken = GetTokenFromHeader(request)
+        userID = GetDataFromToken(accessToken, "user_id")
 
         # DB에 저장하는 코드
         SavePortfolioData(title, content, userID, is_public, image, isTemp)
@@ -88,12 +92,11 @@ async def SavePortfolio(
 
 # 자신의 포트폴리오 리스트를 가져오는 API
 @app.get("/api/portfolio/list")
-async def GetMyPortfolioList(isDesc: bool = True):
+async def GetMyPortfolioList(request: Request, isDesc: bool = True):
     try:
-        """이 부분은 token 연동 후"""
-        # accessToken = GetTokenFromHeader(request)
-        # userID = GetDataFromToken(accessToken, "user_id")
-        userID = 312
+        accessToken = GetTokenFromHeader(request)
+        userID = GetDataFromToken(accessToken, "user_id")
+
         portfolioList = ReadDBList(userID, isDesc)
 
         return {
@@ -115,12 +118,11 @@ async def GetMyPortfolioList(isDesc: bool = True):
 
 # 모든 포트폴리오 리스트를 가져오는 API
 @app.get("/api/portfolio/all")
-async def GetAllPortfolioList(isDesc: bool = True):
+async def GetAllPortfolioList(request: Request, isDesc: bool = True):
     try:
-        """이 부분은 token 연동 후"""
-        # accessToken = GetTokenFromHeader(request)
-        # userID = GetDataFromToken(accessToken, "user_id")
-        userID = 312
+        accessToken = GetTokenFromHeader(request)
+        userID = GetDataFromToken(accessToken, "user_id")
+        print(userID)
         portfolioList = ReadAllPortfolioList(userID, isDesc)
 
         return {
@@ -165,9 +167,10 @@ async def GetUserPortfolioList(userID: int):
 
 # 포트폴리오 상세 페이지를 가져오는 API
 @app.get("/api/portfolio/detail")
-async def GetPortfolioDetail(portfolioID):
+async def GetPortfolioDetail(request: Request, portfolioID: int):
     try:
-        userID = 312
+        accessToken = GetTokenFromHeader(request)
+        userID = GetDataFromToken(accessToken, "user_id")
         content = ReadStorageURL(portfolioID, userID)
         like = ReadLikeCount(portfolioID)
         # title, author, date
@@ -211,9 +214,9 @@ async def GetPortfolioDetail(portfolioID):
 
 
 # 포트폴리오 수정하는 API
-# 미연결
 @app.put("/api/portfolio/update")
 async def UpdatePortfolio(
+    request: Request,
     portfolioID: int,
     title: str,
     content: str,
@@ -223,9 +226,8 @@ async def UpdatePortfolio(
 ):
     try:
         """이 부분은 token 연동 후"""
-        # accessToken = GetTokenFromHeader(request)
-        # userID = GetDataFromToken(accessToken, "user_id")
-        userID = 312
+        accessToken = GetTokenFromHeader(request)
+        userID = GetDataFromToken(accessToken, "user_id")
 
         # DB에 저장하는 코드
         UpdatePortfolioData(
@@ -247,12 +249,11 @@ async def UpdatePortfolio(
 
 # 포트폴리오 좋아요 API
 @app.post("/api/portfolio/like")
-async def ToggleLike(portfolioID: int):
+async def ToggleLike(request: Request, portfolioID: int):
     try:
         """이 부분은 token 연동 후"""
-        # accessToken = GetTokenFromHeader(request)
-        # userID = GetDataFromToken(accessToken, "user_id")
-        userID = 312
+        accessToken = GetTokenFromHeader(request)
+        userID = GetDataFromToken(accessToken, "user_id")
 
         try:
             # 먼저 좋아요 추가 시도
@@ -290,14 +291,12 @@ async def ToggleLike(portfolioID: int):
 
 
 # 포트폴리오 삭제 API
-# 미연결
 @app.delete("/api/portfolio/delete")
-async def DeletePortfolioAPI(portfolioID: int):
+async def DeletePortfolioAPI(request: Request, portfolioID: int):
     try:
         """이 부분은 token 연동 후"""
-        # accessToken = GetTokenFromHeader(request)
-        # userID = GetDataFromToken(accessToken, "user_id")
-        userID = 312
+        accessToken = GetTokenFromHeader(request)
+        userID = GetDataFromToken(accessToken, "user_id")
 
         # DB에서 삭제
         if not DeletePortfolio(portfolioID, userID):
@@ -329,14 +328,14 @@ async def DeletePortfolioAPI(portfolioID: int):
 # 이미지 업로드 API
 @app.post("/api/portfolio/upload-image")
 async def UploadPortfolioImage(
+    request: Request,
     title: str = Form(...),
     image: UploadFile = File(...),
 ):
     try:
         """이 부분은 token 연동 후"""
-        # accessToken = GetTokenFromHeader(request)
-        # userID = GetDataFromToken(accessToken, "user_id")
-        userID = 312
+        accessToken = GetTokenFromHeader(request)
+        userID = GetDataFromToken(accessToken, "user_id")
 
         # 임시 파일로 저장
         tempPath = f"temp_{userID}_{image.filename}"
