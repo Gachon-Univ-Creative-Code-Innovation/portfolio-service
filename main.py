@@ -36,7 +36,7 @@ app.add_middleware(
 
 
 # 포트폴리오 글과 이미지 생성 API
-@app.get("/api/portfolio/make")
+@app.get("/api/portfolio-service/make")
 async def MakeProtfolio(gitURL: str, request: Request):
     try:
         """이 부분은 token 연동 후"""
@@ -60,7 +60,7 @@ async def MakeProtfolio(gitURL: str, request: Request):
 
 
 # 쓴 글을 저장하는 API
-@app.post("/api/portfolio/save")
+@app.post("/api/portfolio-service/save")
 async def SavePortfolio(
     request: Request,
     title: str,
@@ -91,7 +91,7 @@ async def SavePortfolio(
 
 
 # 자신의 포트폴리오 리스트를 가져오는 API
-@app.get("/api/portfolio/list")
+@app.get("/api/portfolio-service/list")
 async def GetMyPortfolioList(request: Request, isDesc: bool = True):
     try:
         accessToken = GetTokenFromHeader(request)
@@ -117,7 +117,7 @@ async def GetMyPortfolioList(request: Request, isDesc: bool = True):
 
 
 # 모든 포트폴리오 리스트를 가져오는 API
-@app.get("/api/portfolio/all")
+@app.get("/api/portfolio-service/all")
 async def GetAllPortfolioList(request: Request, isDesc: bool = True):
     try:
         accessToken = GetTokenFromHeader(request)
@@ -143,7 +143,7 @@ async def GetAllPortfolioList(request: Request, isDesc: bool = True):
 
 
 # 특정 UserID의 포트폴리오 ID를 가져오는 API
-@app.get("/api/portfolio/user")
+@app.get("/api/portfolio-service/user")
 async def GetUserPortfolioList(userID: int):
     try:
         portfolioID = ReadFirstPortfolioID(userID)
@@ -166,7 +166,7 @@ async def GetUserPortfolioList(userID: int):
 
 
 # 포트폴리오 상세 페이지를 가져오는 API
-@app.get("/api/portfolio/detail")
+@app.get("/api/portfolio-service/detail")
 async def GetPortfolioDetail(request: Request, portfolioID: int):
     try:
         accessToken = GetTokenFromHeader(request)
@@ -214,7 +214,7 @@ async def GetPortfolioDetail(request: Request, portfolioID: int):
 
 
 # 포트폴리오 수정하는 API
-@app.put("/api/portfolio/update")
+@app.put("/api/portfolio-service/update")
 async def UpdatePortfolio(
     request: Request,
     portfolioID: int,
@@ -248,7 +248,7 @@ async def UpdatePortfolio(
 
 
 # 포트폴리오 좋아요 API
-@app.post("/api/portfolio/like")
+@app.post("/api/portfolio-service/like")
 async def ToggleLike(request: Request, portfolioID: int):
     try:
         """이 부분은 token 연동 후"""
@@ -291,7 +291,7 @@ async def ToggleLike(request: Request, portfolioID: int):
 
 
 # 포트폴리오 삭제 API
-@app.delete("/api/portfolio/delete")
+@app.delete("/api/portfolio-service/delete")
 async def DeletePortfolioAPI(request: Request, portfolioID: int):
     try:
         """이 부분은 token 연동 후"""
@@ -326,7 +326,7 @@ async def DeletePortfolioAPI(request: Request, portfolioID: int):
 
 
 # 이미지 업로드 API
-@app.post("/api/portfolio/upload-image")
+@app.post("/api/portfolio-service/upload-image")
 async def UploadPortfolioImage(
     request: Request,
     title: str = Form(...),
@@ -369,6 +369,6 @@ async def UploadPortfolioImage(
 
 
 # 헬스 체크
-@app.get("/api/portfolio/health-check")
+@app.get("/api/portfolio-service/health-check")
 async def HealthCheck():
     return {"status": 200, "message": "서버 상태 확인", "data": "Working"}
