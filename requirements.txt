@@ -7,3 +7,4 @@ uvicorn
 supabase
 unidecode
 python-multipart
+prometheus-fastapi-instrumentator

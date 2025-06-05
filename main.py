@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.Extractor.READMEFetcher import GetREADMEandImage
 from src.Utils.Model import RunModel
@@ -25,6 +26,7 @@ from src.ConnectDB.Upload2DB import (
 
 
 app = FastAPI(title="Portfolio AI API")
+instrumentator = Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
     CORSMiddleware,
