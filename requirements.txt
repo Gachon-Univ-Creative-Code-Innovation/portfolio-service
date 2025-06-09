@@ -8,3 +8,4 @@ supabase
 unidecode
 python-multipart
 prometheus-fastapi-instrumentator
+PyJWT

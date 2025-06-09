@@ -33,12 +33,17 @@ def GetREADME(repoURL, gitToken=None):
 
 # Github 서비스에서 README DB 정보 가져오는 코드
 # Readme 앞부분과 이미지 return
-async def FetchREADME(userID: int, gitURL: str):
+async def FetchREADME(userID: int, gitURL: str, authorization_header: str = None):
     try:
-        params = {"userID": userID, "gitURL": gitURL}
+        headers = {"accept": "application/json"}
+        if authorization_header:
+            headers["Authorization"] = authorization_header
+        params = {"userID": str(userID), "gitURL": gitURL}
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                "http://gitapi:8000/api/career/db/readme", params=params
+                "http://a6b22e375302341608e5cefe10095821-1897121300.ap-northeast-2.elb.amazonaws.com:8000/api/github-service/db/readme",
+                params=params,
+                headers=headers,
             )
         if response.status_code == 200:
             return (
@@ -46,7 +51,6 @@ async def FetchREADME(userID: int, gitURL: str):
                 response.json()["data"]["img_url"],
             )
         else:
-            print("DB에서 README 정보 가져오기 실패:", response.text)
             return None
     except Exception as e:
         traceback.print_exc()
@@ -65,6 +69,8 @@ def CheckSimilarity(text1, text2, threshold=0.7):
 
 # 글 정규화 (html, markdown, 불필요한 공백 제거)
 def NormalizationText(text):
+    if text is None:
+        return None
     textHTML = re.sub(r"<.*?>", "", text)
     textMarkdown = re.sub(r"(\*\*|\*|__|_|\#|\`|[!\[\]\(\)])", "", textHTML)
     resultText = re.sub(r"\n\n+", "\n", textMarkdown)
@@ -73,11 +79,17 @@ def NormalizationText(text):
 
 
 # README 내용과 이미지를 가져오는 함수
-async def GetREADMEandImage(userID, gitURL):
+async def GetREADMEandImage(userID, gitURL, request=None):
     # DB README 내용 가져오기
     try:
-        DBContent, imgURL = await FetchREADME(userID, gitURL)
-        DBContent = NormalizationText(DBContent)
+        authorization_header = request.headers.get("Authorization") if request else None
+        fetch_result = await FetchREADME(userID, gitURL, authorization_header)
+        if fetch_result is not None:
+            DBContent, imgURL = fetch_result
+            DBContent = NormalizationText(DBContent)
+        else:
+            DBContent = None
+            imgURL = None
     except Exception as e:
         DBContent = None
         imgURL = None
@@ -97,4 +109,8 @@ async def GetREADMEandImage(userID, gitURL):
     if CheckSimilarity(DBContent, WebContent):
         return DBContent, imgURL
     else:
-        return WebContent + "\n" + DBContent, imgURL
+        return (
+            (WebContent + "\n" + DBContent)
+            if WebContent and DBContent
+            else (WebContent or DBContent)
+        ), imgURL

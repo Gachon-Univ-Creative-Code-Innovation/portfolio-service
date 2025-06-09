@@ -51,20 +51,16 @@ instrumentator = Instrumentator().instrument(app).expose(app)
 @app.get("/api/portfolio-service/make")
 async def MakeProtfolio(gitURL: str, request: Request):
     try:
-        """이 부분은 token 연동 후"""
         accessToken = GetTokenFromHeader(request)
         userID = GetDataFromToken(accessToken, "user_id")
-
-        content, image = await GetREADMEandImage(userID, gitURL)
+        content, image = await GetREADMEandImage(userID, gitURL, request)
         text = RunModel(content)
-
         return {
             "status": 200,
             "message": "요청에 성공하였습니다.",
             "data": {"text": text, "image": image},
         }
-
-    except Exception:
+    except Exception as e:
         return JSONResponse(
             status_code=400,
             content={"status": 400, "message": "포트폴리오 생성 실패", "data": None},
