@@ -1,8 +1,9 @@
 import os
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
+from pydantic import BaseModel
+from typing import Optional
 
 from src.Extractor.READMEFetcher import GetREADMEandImage
 from src.Utils.Model import RunModel
@@ -25,16 +26,25 @@ from src.ConnectDB.Upload2DB import (
 )
 
 
+class SavePortfolioRequest(BaseModel):
+    title: str
+    content: str
+    is_public: bool
+    isTemp: bool
+    image: Optional[str] = None
+
+
+class UpdatePortfolioRequest(BaseModel):
+    portfolioID: int
+    title: str
+    content: str
+    isPublic: bool
+    isTemp: bool
+    image: Optional[str] = None
+
+
 app = FastAPI(title="Portfolio AI API")
 instrumentator = Instrumentator().instrument(app).expose(app)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 # 포트폴리오 글과 이미지 생성 API
@@ -63,21 +73,16 @@ async def MakeProtfolio(gitURL: str, request: Request):
 
 # 쓴 글을 저장하는 API
 @app.post("/api/portfolio-service/save")
-async def SavePortfolio(
-    request: Request,
-    title: str,
-    content: str,
-    is_public: bool,
-    isTemp: bool,
-    image: str = None,
-):
+async def SavePortfolio(request: Request, body: SavePortfolioRequest):
     try:
         """이 부분은 token 연동 후"""
         accessToken = GetTokenFromHeader(request)
         userID = GetDataFromToken(accessToken, "user_id")
 
         # DB에 저장하는 코드
-        SavePortfolioData(title, content, userID, is_public, image, isTemp)
+        SavePortfolioData(
+            body.title, body.content, userID, body.is_public, body.image, body.isTemp
+        )
 
         return {
             "status": 200,
@@ -217,15 +222,7 @@ async def GetPortfolioDetail(request: Request, portfolioID: int):
 
 # 포트폴리오 수정하는 API
 @app.put("/api/portfolio-service/update")
-async def UpdatePortfolio(
-    request: Request,
-    portfolioID: int,
-    title: str,
-    content: str,
-    isPublic: bool,
-    isTemp: bool,
-    image: str = None,
-):
+async def UpdatePortfolio(request: Request, body: UpdatePortfolioRequest):
     try:
         """이 부분은 token 연동 후"""
         accessToken = GetTokenFromHeader(request)
@@ -233,7 +230,13 @@ async def UpdatePortfolio(
 
         # DB에 저장하는 코드
         UpdatePortfolioData(
-            portfolioID, title, content, userID, isPublic, image, isTemp
+            body.portfolioID,
+            body.title,
+            body.content,
+            userID,
+            body.isPublic,
+            body.image,
+            body.isTemp,
         )
 
         return {
